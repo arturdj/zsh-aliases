@@ -39,36 +39,48 @@ alias adcurlo='autocurl() {
 # Run: 
 #    brew install coreutils colordiff
 alias acurlo='autocurl() {
-    # set -x
-    opts=
-    match="x-debug" #default
-    no_debug=0
-
+    # Default values
+    match="x-debug"
     output="/dev/null"
+    interval=5
+    curl_opts=(-v -H "pragma: azion-debug-cache")
 
-    while (( $# )); do
-        case $1 in
-            -M=*|--match=*)  match="${1#*=}"; no_debug=0;;
-            -o=*) output="${1#*=}"; shift;;
-            *) opts+=( "$1" );;
+    # Parse arguments and override defaults if provided, without using "=" notation
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -M|--match)
+                shift
+                [[ $# -gt 0 ]] && match="$1" && shift
+                ;;
+            -o|--output)
+                shift
+                [[ $# -gt 0 ]] && output="$1" && shift
+                ;;
+            -i|--interval)
+                shift
+                [[ $# -gt 0 ]] && interval="$1" && shift
+                ;;
+            *)
+                curl_opts+=("$1")
+                shift
+                ;;
         esac
-        shift
     done
+
+    # Add output option if not default
+    curl_opts+=(-o "$output")
 
     start=`date +"%Y-%m-%d %H:%M:%S%z"`
     start_sec=`date +%s`
     count=1
     old_x_debug="None"
-    >&2 echo "-- Started: $start --"
-
-    # sets interval between requests in seconds
-    interval=5
+    >&2 echo "-- Started: $start (interval: $interval sec; Options: \"${curl_opts[@]}\") --"
 
     while true
         do
         loop_start=$(date +%s)
         
-        x=`curl -v ${opts} -H "pragma: azion-debug-cache" -o $output 2>&1 | tr -d "\r"`
+        x=`curl ${curl_opts} -o $output 2>&1 | tr -d "\r"`
         x_debug=`echo -e "$x" | grep "$match"`
         
         echo -e "$x"
