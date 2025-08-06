@@ -145,7 +145,7 @@ azionstage_func() {
         fi
     done
     echo "No responsive server found while trying: ${AZION_STAGE_HOSTS}" >&2
-    exit 1
+    return 1
 }; azionstage_func'
 
 alias bestedge='bestEdge() {
