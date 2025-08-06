@@ -121,23 +121,31 @@ alias azionipprev='dig +short lala.preview.map.azionedge.net | head -1'
 
 alias azionstage='
 azionstage_func() {
-    hosts=("edg-br1-hav001s.infra.azion.net" "186.195.69.108" "186.195.69.109")
-    for host in "${hosts[@]}"; do
-        ip=$host
+    # Try to read STAGE HOSTS from environment variable
+    if [ -z "${AZION_STAGE_HOSTS[*]}" ]; then
+        echo "No AZION_STAGE_HOSTS found in environment" >&2
+        return 1
+    fi
+
+    for stage_host in "${AZION_STAGE_HOSTS[@]}"; do
+        ip=$stage_host
         # If not an IP, resolve it
-        if [[ ! $host =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ ! $stage_host =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             ip=$(dig +short $host | head -1)
         fi
         if [[ -n "$ip" ]]; then
             # Try HTTPS connection, ignore output, timeout after 2s
             if timeout 2 bash -c "</dev/tcp/$ip/443" 2>/dev/null; then
-                echo "$ip"
+                echo "$ip (https:443)"
+                return 0
+            elif timeout 2 bash -c "</dev/tcp/$ip/80" 2>/dev/null; then
+                echo "$ip (http:80)"
                 return 0
             fi
         fi
     done
-    echo "No responsive server found" >&2
-    return 1
+    echo "No responsive server found while trying: ${AZION_STAGE_HOSTS}" >&2
+    exit 1
 }; azionstage_func'
 
 alias bestedge='bestEdge() {
@@ -151,7 +159,6 @@ alias mychrome='myChrome() {
     target=${1}
     target_hostname=$(echo $target | awk -F/ {print\ \$3})
     ipadd=${2:-$(azionipprev)}
-    #open -a "Google Chrome" -n --args --incognito --host-resolver-rules="MAP console.azion.com 179.191.172.120" --new-window https://console.azion.com 
     set -x
     open -a "Google Chrome" -n --args --incognito --host-resolver-rules="MAP $target_hostname $ipadd" --new-window $target
     set +x
