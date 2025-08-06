@@ -176,15 +176,21 @@ alias mychrome='myChrome() {
     set +x
 }; myChrome $*'
 
-alias az_edge='myazedge() {
-    result=$(curl -fsS $SRE_MANAGER_URL/api/metrics/blackbox/interfaces | \
-        jq -r --arg ip "$1" ".hosts|to_entries[]|select([.value[]?]|flatten|index(\$ip))|.key") || \
-            { echo "Please, connect to Azion VPN." && return 1 }
-        
-    [[ -z "$result" ]] && { echo "No server found for $1" && return 1 }
-    
+alias azname='myazname() {
+    [[ "$1" == "-v" ]] && { verbose=1; shift; } || verbose=0
+    ip="$1"
+    [[ -z "$ip" ]] && { echo "Usage: az_edge [-v] <ip>"; return 1; }
+    json=$(curl -fsS "$SRE_MANAGER_URL/api/metrics/blackbox/interfaces") || { echo "Please, connect to Azion VPN."; return 1; }
+    if [[ $verbose -eq 1 ]]; then
+        jq_query=".hosts | to_entries[] | select([.value[]?]|flatten|index(\$ip))"
+        result=$(echo "$json" | jq --arg ip "$ip" "$jq_query")
+    else
+        jq_query=".hosts | to_entries[] | select([.value[]?]|flatten|index(\$ip)) | .key"
+        result=$(echo "$json" | jq -r --arg ip "$ip" "$jq_query")
+    fi
+    [[ -z "$result" ]] && { echo "No server found for $ip"; return 1; }
     echo "$result"
-}; myazedge $*'
+}; myazname $*'
 
 
 # Add timestamp
