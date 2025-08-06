@@ -80,7 +80,7 @@ alias acurlo='autocurl() {
         do
         loop_start=$(date +%s)
         
-        x=`curl ${curl_opts} -o $output 2>&1 | tr -d "\r"`
+        x=`curl ${curl_opts} 2>&1 | tr -d "\r"`
         x_debug=`echo -e "$x" | grep "$match"`
         
         echo -e "$x"
