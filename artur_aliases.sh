@@ -176,5 +176,16 @@ alias mychrome='myChrome() {
     set +x
 }; myChrome $*'
 
+alias az_edge='myazedge() {
+    result=$(curl -fsS $SRE_MANAGER_URL/api/metrics/blackbox/interfaces | \
+        jq -r --arg ip "$1" ".hosts|to_entries[]|select([.value[]?]|flatten|index(\$ip))|.key") || \
+            { echo "Please, connect to Azion VPN." && return 1 }
+        
+    [[ -z "$result" ]] && { echo "No server found for $1" && return 1 }
+    
+    echo "$result"
+}; myazedge $*'
+
+
 # Add timestamp
 RPROMPT="[%D{%L:%M:%S}]"
